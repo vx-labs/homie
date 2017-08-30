@@ -60,15 +60,15 @@ type TLSFormat struct {
 	Privkey    string `json:"privkey"`
 }
 type MQTTFormat struct {
-	Prefix     string    `json:"prefix,omitempty"`
-	Host       string    `json:"host,omitempty"`
-	Port       int       `json:"port,omitempty"`
-	Ssl        bool      `json:"ssl,omitempty"`
-	Ssl_Config TLSFormat `json:"ssl_config,omitempty"`
+	Prefix     string     `json:"prefix,omitempty"`
+	Host       string     `json:"host,omitempty"`
+	Port       int        `json:"port,omitempty"`
+	Ssl        bool       `json:"ssl,omitempty"`
+	Ssl_Config *TLSFormat `json:"ssl_config,omitempty"`
 }
 type Format struct {
-	Mqtt        MQTTFormat  `json:"mqtt,omitempty"`
-	Homie       HomieFormat `json:"homie,omitempty"`
+	Mqtt        *MQTTFormat  `json:"mqtt,omitempty"`
+	Homie       *HomieFormat `json:"homie,omitempty"`
 	Initialized bool
 }
 
@@ -82,18 +82,18 @@ func (s *store) LoadDefaults() {
 	s.logger.Debug("loading default configuration")
 	s.Data = &Format{
 		Initialized: true,
-		Mqtt: MQTTFormat{
+		Mqtt: &MQTTFormat{
 			Prefix: "",
 			Host:   "iot.eclipse.org",
 			Port:   1883,
 			Ssl:    false,
-			Ssl_Config: TLSFormat{
+			Ssl_Config: &TLSFormat{
 				Privkey:    "",
 				CA:         "",
 				ClientCert: "",
 			},
 		},
-		Homie: HomieFormat{
+		Homie: &HomieFormat{
 			Name:   "go-homie",
 			Prefix: "devices/",
 		},

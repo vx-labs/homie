@@ -23,7 +23,7 @@ type Client interface {
 	AddConfigCallback(func(config string))
 	AddNode(name string, nodeType string, properties []string, settables []SettableProperty)
 	Nodes() map[string]Node
-	Reconfigure(prefix string, host string, port int, mqttPrefix string, ssl bool, sslAuth config.TLSFormat, deviceName string)
+	Reconfigure(prefix string, host string, port int, mqttPrefix string, ssl bool, sslAuth *config.TLSFormat, deviceName string)
 }
 type SettableProperty struct {
 	Name     string
@@ -105,7 +105,7 @@ func (homieClient *client) AddConfigCallback(callback func(config string)) {
 	homieClient.configCallbacks = append(homieClient.configCallbacks, callback)
 }
 
-func (homieClient *client) Reconfigure(prefix string, host string, port int, mqttPrefix string, ssl bool, sslConfig config.TLSFormat, deviceName string) {
+func (homieClient *client) Reconfigure(prefix string, host string, port int, mqttPrefix string, ssl bool, sslConfig *config.TLSFormat, deviceName string) {
 	cfg := homieClient.cfgStore.Get()
 	cfg.Homie.Name = deviceName
 	cfg.Mqtt.Prefix = mqttPrefix
