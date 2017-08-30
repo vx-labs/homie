@@ -125,9 +125,11 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 
 	// $online must be sent last
 	homieClient.publish("$online", "true")
+	go homieClient.ReadyCallback()
 }
 
-func (homieClient *client) Start() error {
+func (homieClient *client) Start(cb func()) error {
+	homieClient.ReadyCallback = cb
 	tries := 0
 	homieClient.logger.Debug("creating mqtt client")
 	homieClient.logger.Debug("using config %s", homieClient.cfgStore.Dump())
@@ -256,7 +258,7 @@ func (homieClient *client) publishNode(node Node) {
 func (homieClient *client) Restart() error {
 	homieClient.logger.Info("restarting mqtt subsystem")
 	homieClient.Stop()
-	err := homieClient.Start()
+	err := homieClient.Start(homieClient.ReadyCallback)
 	if err == nil {
 		for _, node := range homieClient.Nodes() {
 			homieClient.logger.Info("restoring node ", node.Name())

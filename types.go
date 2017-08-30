@@ -10,7 +10,7 @@ import (
 )
 
 type Client interface {
-	Start() error
+	Start(readyCallback func()) error
 	Restart() error
 	Name() string
 	Id() string
@@ -61,6 +61,7 @@ type client struct {
 	mqttClient      mqtt.Client
 	nodes           map[string]Node
 	configCallbacks []func(config string)
+	ReadyCallback   func()
 }
 
 func (homieClient *client) Id() string {
