@@ -130,6 +130,7 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 func (homieClient *client) Start() error {
 	tries := 0
 	homieClient.logger.Debug("creating mqtt client")
+	homieClient.logger.Debug("using config %s", homieClient.cfgStore.Dump())
 	homieClient.mqttClient = mqtt.NewClient(homieClient.getMQTTOptions())
 	homieClient.bootTime = time.Now()
 	homieClient.logger.Debug("connecting to mqtt server ", homieClient.Url())

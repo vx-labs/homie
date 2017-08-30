@@ -10,6 +10,7 @@ import (
 
 type Store interface {
 	Get() *Format
+	Dump() string
 	Stop()
 	Save()
 }
