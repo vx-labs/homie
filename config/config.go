@@ -30,6 +30,7 @@ func NewStore(ctx context.Context, path string, logger *logrus.Entry) Store {
 	s := &store{Path: path, Db: db, logger: logger}
 	ctx, cancel := context.WithCancel(ctx)
 	s.cancel = cancel
+	s.LoadPersisted()
 	go s.start(ctx)
 	return s
 }
@@ -71,7 +72,6 @@ type Format struct {
 }
 
 func (s *store) start(ctx context.Context) {
-	s.LoadPersisted()
 	select {
 	case <-ctx.Done():
 		s.Db.Close()
