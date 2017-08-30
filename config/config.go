@@ -113,8 +113,8 @@ func (s *store) Dump() string {
 func (s *store) Save() {
 	defer func() {
 		if r := recover(); r != nil {
-			s.logger.Fatal("Unknown error occured when saving config")
-			s.logger.Fatal(r)
+			s.logger.Error("Unknown error occured when saving config")
+			s.logger.Error(r)
 		}
 	}()
 	s.logger.Debug("updating saved configuration")

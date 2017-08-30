@@ -58,14 +58,14 @@ func (homieClient *client) getMQTTOptions() *mqtt.ClientOptions {
 		cert, err := tls.LoadX509KeyPair(homieClient.cfgStore.Get().Mqtt.Ssl_Config.ClientCert, homieClient.cfgStore.Get().Mqtt.Ssl_Config.Privkey)
 
 		if err != nil {
-			homieClient.logger.Fatal(err)
+			homieClient.logger.Error(err)
 		} else {
 			homieClient.logger.Debug("loaded TLS certificate and private key from ", homieClient.cfgStore.Get().Mqtt.Ssl_Config.ClientCert, " and ", homieClient.cfgStore.Get().Mqtt.Ssl_Config.Privkey)
 			caCertPool := x509.NewCertPool()
 			homieClient.logger.Debug("loading CA certificate from ", homieClient.cfgStore.Get().Mqtt.Ssl_Config.CA)
 			caCert, err := ioutil.ReadFile(homieClient.cfgStore.Get().Mqtt.Ssl_Config.CA)
 			if err != nil {
-				homieClient.logger.Fatal(err)
+				homieClient.logger.Error(err)
 			}
 			caCertPool.AppendCertsFromPEM(caCert)
 			loadedConfig := &tls.Config{Certificates: []tls.Certificate{cert}, InsecureSkipVerify: true, RootCAs: caCertPool}
@@ -142,7 +142,7 @@ func (homieClient *client) Start() error {
 			case <-time.After(5 * time.Second):
 				tries += 1
 			case <-homieClient.stopChan:
-				homieClient.logger.Fatal("could not connect to MQTT: we are being shutdown")
+				homieClient.logger.Error("could not connect to MQTT: we are being shutdown")
 				homieClient.stopStatusChan <- true
 				return errors.New("could not connect to MQTT: we are being shutdown")
 			}
@@ -269,7 +269,7 @@ func (homieClient *client) Restart() error {
 		}
 		return nil
 	} else {
-		homieClient.logger.Fatal("could not finish restart: mqtt subsystem failed to start")
+		homieClient.logger.Error("could not finish restart: mqtt subsystem failed to start")
 		return errors.New("could not finish restart: mqtt subsystem failed to start")
 	}
 }
