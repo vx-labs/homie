@@ -81,7 +81,7 @@ func (s *store) start(ctx context.Context) {
 func (s *store) LoadDefaults() {
 	s.logger.Debug("loading default configuration")
 	s.Data = &Format{
-		Initialized: true,
+		Initialized: false,
 		Mqtt: &MQTTFormat{
 			Prefix: "",
 			Host:   "iot.eclipse.org",
