@@ -217,6 +217,9 @@ func (homieClient *client) AddNode(name string, nodeType string) {
 		name, nodeType, homieClient.logger.WithField("node", name),
 		func(path string, value string) {
 			homieClient.publish(path, value)
+		},
+		func(topic string, callback func(topic, payload string)) {
+			homieClient.subscribe(topic, callback)
 		})
 }
 

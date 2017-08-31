@@ -9,7 +9,8 @@ type Node interface {
 	Name() string
 	Type() string
 	Properties() []string
-	AddProperty(name string, settable bool, unit string, datatype string, format string)
+	AddProperty(name string, unit string, datatype string, format string)
+	AddSettable(name string, unit string, datatype string, format string, callback func(property Property, payload string))
 	Set(property string, value string)
 	Publish()
 }
@@ -20,13 +21,15 @@ type node struct {
 	properties map[string]Property
 	logger     *logrus.Entry
 	publish    publishFunc
+	subscribe  subscribeFunc
 }
 
-func NewNode(name string, nodeType string, logger *logrus.Entry, publish publishFunc) Node {
+func NewNode(name string, nodeType string, logger *logrus.Entry, publish publishFunc, subscribe subscribeFunc) Node {
 	newnode := &node{
 		name:       name,
 		nodeType:   nodeType,
 		publish:    publish,
+		subscribe:  subscribe,
 		logger:     logger,
 		properties: map[string]Property{},
 	}
@@ -53,7 +56,7 @@ func (node *node) Set(property string, value string) {
 func (node *node) Type() string {
 	return node.nodeType
 }
-func (node *node) AddProperty(name string, settable bool, unit string, datatype string, format string) {
+func (node *node) AddProperty(name string, unit string, datatype string, format string) {
 	property := NewProperty(name, unit, datatype, format, func(name, value string) {
 		node.publish(node.Name()+"/"+name, value)
 	})
@@ -72,4 +75,11 @@ func (node *node) Publish() {
 	node.publish(node.name+"/$type", node.Type())
 	node.publish(node.name+"/$name", node.Name())
 	node.publish(node.name+"/$properties", strings.Join(propertiesList, ","))
+}
+
+func (node *node) AddSettable(name string, unit string, datatype string, format string, callback func(property Property, payload string)) {
+	node.AddProperty(name, unit, datatype, format)
+	node.subscribe(node.name+"/"+name+"/set", func(topic, payload string) {
+		callback(node.properties[name], payload)
+	})
 }

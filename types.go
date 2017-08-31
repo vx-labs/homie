@@ -9,6 +9,7 @@ import (
 )
 
 type publishFunc func(property string, value string)
+type subscribeFunc func(topic string, callback func(topic, payload string))
 
 type Client interface {
 	Start(readyCallback func()) error
