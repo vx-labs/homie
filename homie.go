@@ -112,6 +112,11 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 	homieClient.publish("$fw/version", "0.0.1")
 	homieClient.publish("$implementation", "vx-go-homie")
 
+	for name, node := range homieClient.Nodes() {
+		homieClient.logger.Debugf("publishing node %s", name)
+		node.Publish()
+	}
+
 	// $online must be sent last
 	homieClient.publish("$online", "true")
 	go homieClient.ReadyCallback()
@@ -159,6 +164,7 @@ func (homieClient *client) loop() {
 		select {
 		case msg := <-homieClient.publishChan:
 			topic := homieClient.getDevicePrefix() + msg.subtopic
+			homieClient.logger.Debugf("%s <- %s", topic, msg.payload)
 			homieClient.mqttClient.Publish(topic, 1, true, msg.payload)
 			break
 		case msg := <-homieClient.unsubscribeChan:
@@ -205,10 +211,8 @@ func (homieClient *client) AddNode(name string, nodeType string) {
 	homieClient.nodes[name] = NewNode(
 		name, nodeType, homieClient.logger.WithField("node", name),
 		func(path string, value string) {
-			homieClient.publish(name+"/"+path, value)
+			homieClient.publish(path, value)
 		})
-	homieClient.logger.Debugf("publishing node %s", name)
-	homieClient.nodes[name].Publish()
 }
 
 func (homieClient *client) Restart() error {
