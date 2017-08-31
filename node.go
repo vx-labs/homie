@@ -57,7 +57,7 @@ func (node *node) Type() string {
 	return node.nodeType
 }
 func (node *node) AddProperty(name string, unit string, datatype string, format string) {
-	property := NewProperty(name, unit, datatype, format, func(name, value string) {
+	property := NewProperty(name, false, unit, datatype, format, func(name, value string) {
 		node.publish(node.Name()+"/"+name, value)
 	})
 	node.properties[property.Name()] = property
@@ -78,7 +78,10 @@ func (node *node) Publish() {
 }
 
 func (node *node) AddSettable(name string, unit string, datatype string, format string, callback func(property Property, payload string)) {
-	node.AddProperty(name, unit, datatype, format)
+	property := NewProperty(name, true, unit, datatype, format, func(name, value string) {
+		node.publish(node.Name()+"/"+name, value)
+	})
+	node.properties[property.Name()] = property
 	node.subscribe(node.name+"/"+name+"/set", func(topic, payload string) {
 		callback(node.properties[name], payload)
 	})

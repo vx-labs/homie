@@ -44,7 +44,11 @@ func (p *property) Format() string {
 }
 func (p *property) Publish() error {
 	p.publish(p.name, p.value)
-	p.publish(p.name+"/$settable", "false")
+	if p.settable {
+		p.publish(p.name+"/$settable", "true")
+	} else {
+		p.publish(p.name+"/$settable", "false")
+	}
 	p.publish(p.name+"/$unit", p.unit)
 	p.publish(p.name+"/$datatype", p.datatype)
 	p.publish(p.name+"/$name", p.name)
@@ -52,10 +56,10 @@ func (p *property) Publish() error {
 	return nil
 }
 
-func NewProperty(name string, unit string, datatype string, format string, cb publishFunc) Property {
+func NewProperty(name string, settable bool, unit string, datatype string, format string, cb publishFunc) Property {
 	return &property{
 		name:     name,
-		settable: false,
+		settable: settable,
 		unit:     unit,
 		datatype: datatype,
 		format:   format,
