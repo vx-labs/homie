@@ -104,7 +104,7 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 	homieClient.id = id
 	go homieClient.loop()
 
-	homieClient.publish("$homie", "2.0.0")
+	homieClient.publish("$homie", "2.1.0")
 	homieClient.publish("$name", homieClient.Name())
 	homieClient.publish("$mac", homieClient.Mac())
 	homieClient.publish("$stats/interval", "10")
