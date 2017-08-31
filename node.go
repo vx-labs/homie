@@ -69,6 +69,6 @@ func (node *node) Publish() {
 		propertiesList[i] = prop.Name()
 		i += 1
 	}
-	node.publish("$type", node.Type())
-	node.publish("$properties", strings.Join(propertiesList, ","))
+	node.publish(node.name+"/$type", node.Type())
+	node.publish(node.name+"/$properties", strings.Join(propertiesList, ","))
 }
