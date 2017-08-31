@@ -2,7 +2,6 @@ package homie
 
 import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/vx-labs/homie/config"
 	"strconv"
@@ -33,17 +32,14 @@ type SettableProperty struct {
 }
 
 type stateMessage struct {
-	Uuid     uuid.UUID
 	subtopic string
 	payload  string
 }
 type subscribeMessage struct {
-	Uuid     uuid.UUID
 	subtopic string
 	callback func(path string, payload string)
 }
 type unsubscribeMessage struct {
-	Uuid     uuid.UUID
 	subtopic string
 }
 

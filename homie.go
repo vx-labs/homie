@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/eclipse/paho.mqtt.golang"
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/vx-labs/homie/config"
 	"io/ioutil"
@@ -74,25 +73,16 @@ func (homieClient *client) getMQTTOptions() *mqtt.ClientOptions {
 	return o
 }
 
-func (homieClient *client) publish(subtopic string, payload string) string {
-	id := uuid.New()
-	homieClient.publishChan <- stateMessage{subtopic: subtopic, payload: payload, Uuid: id}
-	homieClient.logger.Debug("publication id", id, "submitted")
-	return id.String()
+func (homieClient *client) publish(subtopic string, payload string) {
+	homieClient.publishChan <- stateMessage{subtopic: subtopic, payload: payload}
 }
 
-func (homieClient *client) unsubscribe(subtopic string) string {
-	id := uuid.New()
-	homieClient.unsubscribeChan <- unsubscribeMessage{subtopic: subtopic, Uuid: id}
-	homieClient.logger.Debug("unsubscription id", id, "submitted")
-	return id.String()
+func (homieClient *client) unsubscribe(subtopic string) {
+	homieClient.unsubscribeChan <- unsubscribeMessage{subtopic: subtopic}
 }
 
-func (homieClient *client) subscribe(subtopic string, callback func(path string, payload string)) string {
-	id := uuid.New()
-	homieClient.subscribeChan <- subscribeMessage{subtopic: subtopic, callback: callback, Uuid: id}
-	homieClient.logger.Debug("subscription id", id, "submitted")
-	return id.String()
+func (homieClient *client) subscribe(subtopic string, callback func(path string, payload string)) {
+	homieClient.subscribeChan <- subscribeMessage{subtopic: subtopic, callback: callback}
 }
 
 func (homieClient *client) onConnectHandler(client mqtt.Client) {
@@ -170,19 +160,16 @@ func (homieClient *client) loop() {
 		case msg := <-homieClient.publishChan:
 			topic := homieClient.getDevicePrefix() + msg.subtopic
 			homieClient.mqttClient.Publish(topic, 1, true, msg.payload)
-			homieClient.logger.Debug("publication id", msg.Uuid.String(), "processed")
 			break
 		case msg := <-homieClient.unsubscribeChan:
 			topic := homieClient.getDevicePrefix() + msg.subtopic
 			homieClient.mqttClient.Unsubscribe(topic)
-			homieClient.logger.Debug("unsubscription id", msg.Uuid, "processed")
 			break
 		case msg := <-homieClient.subscribeChan:
 			topic := homieClient.getDevicePrefix() + msg.subtopic
 			homieClient.mqttClient.Subscribe(topic, 1, func(mqttClient mqtt.Client, mqttMessage mqtt.Message) {
 				msg.callback(mqttMessage.Topic(), string(mqttMessage.Payload()))
 			})
-			homieClient.logger.Debug("subscription id", msg.Uuid, "processed")
 			break
 		case <-homieClient.stopChan:
 			run = false
