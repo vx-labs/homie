@@ -121,7 +121,7 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 		node.Publish()
 		i += 1
 	}
-	homieClient.publish("nodes", strings.Join(nodes, ","))
+	homieClient.publish("$nodes", strings.Join(nodes, ","))
 	// $online must be sent last
 	homieClient.publish("$online", "true")
 	go homieClient.ReadyCallback()
