@@ -1,6 +1,9 @@
 package homie
 
-import "strings"
+import (
+	"github.com/sirupsen/logrus"
+	"strings"
+)
 
 type Node interface {
 	Name() string
@@ -15,14 +18,16 @@ type node struct {
 	name       string
 	nodeType   string
 	properties map[string]Property
+	logger     *logrus.Entry
 	publish    publishFunc
 }
 
-func NewNode(name string, nodeType string, publish publishFunc) Node {
+func NewNode(name string, nodeType string, logger *logrus.Entry, publish publishFunc) Node {
 	newnode := &node{
 		name:       name,
 		nodeType:   nodeType,
 		publish:    publish,
+		logger:     logger,
 		properties: map[string]Property{},
 	}
 	return newnode
@@ -56,6 +61,7 @@ func (node *node) AddProperty(name string, settable bool, unit string, datatype 
 }
 
 func (node *node) Publish() {
+	node.logger.Debugf("publishing node %s", node.name)
 	propertiesList := make([]string, len(node.properties))
 	i := 0
 	for _, prop := range node.properties {

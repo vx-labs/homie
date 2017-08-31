@@ -201,11 +201,13 @@ func (homieClient *client) Stop() error {
 }
 
 func (homieClient *client) AddNode(name string, nodeType string) {
+	homieClient.logger.Infof("adding node %s", name)
 	homieClient.nodes[name] = NewNode(
-		name, nodeType,
+		name, nodeType, homieClient.logger.WithField("node", name),
 		func(path string, value string) {
 			homieClient.publish(name+"/"+path, value)
 		})
+	homieClient.logger.Debugf("publishing node %s", name)
 	homieClient.nodes[name].Publish()
 }
 
