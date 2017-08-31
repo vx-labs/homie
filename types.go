@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+type publishFunc func(property string, value string)
+
 type Client interface {
 	Start(readyCallback func()) error
 	Restart() error
@@ -21,7 +23,7 @@ type Client interface {
 	Stop() error
 	FirmwareName() string
 	AddConfigCallback(func(config string))
-	AddNode(name string, nodeType string, properties []string, settables []SettableProperty)
+	AddNode(name string, nodeType string)
 	Nodes() map[string]Node
 	Reconfigure(prefix string, host string, port int, mqttPrefix string, ssl bool, sslAuth *config.TLSFormat, deviceName string)
 }

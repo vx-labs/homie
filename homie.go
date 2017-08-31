@@ -13,7 +13,6 @@ import (
 	"io/ioutil"
 	"net"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -214,45 +213,13 @@ func (homieClient *client) Stop() error {
 	}
 }
 
-func (homieClient *client) AddNode(name string, nodeType string, properties []string, settables []SettableProperty) {
+func (homieClient *client) AddNode(name string, nodeType string) {
 	homieClient.nodes[name] = NewNode(
-		name, nodeType, properties, settables,
-		func(property string, value string) {
-			homieClient.publish(name+"/"+property, value)
+		name, nodeType,
+		func(path string, value string) {
+			homieClient.publish(name+"/"+path, value)
 		})
-	homieClient.publishNode(homieClient.nodes[name])
-}
-func (homieClient *client) publishNode(node Node) {
-	name := node.Name()
-	nodeType := node.Type()
-	settables := node.Settables()
-
-	homieClient.publish(name+"/$type", nodeType)
-
-	propertyCsv := strings.Join(homieClient.nodes[name].Properties(), ",")
-	settablesList := []string{}
-	for _, property := range settables {
-		homieClient.logger.Debug("Subscribing for settable properties notifications: ", property.Name)
-		myProp := property
-		prop := myProp.Name
-		homieClient.subscribe(name+"/"+prop+"/set", func(path string, payload string) {
-			homieClient.logger.Debug("Settable property update (from path", path, "):", prop, " -> ", payload)
-			homieClient.nodes[name].Set(prop, payload)
-			myProp.Callback(payload)
-		})
-		homieClient.subscribe(name+"/"+prop, func(path string, payload string) {
-			homieClient.logger.Debug("restoring old value for property ", prop, ": ", payload)
-			homieClient.nodes[name].Set(prop, payload)
-			homieClient.unsubscribe(name + "/" + prop)
-		})
-		settablesList = append(settablesList, property.Name+":settable")
-	}
-	if len(settablesList) > 0 {
-		settablesCsv := strings.Join(settablesList, ",")
-		propertyCsv = propertyCsv + "," + settablesCsv
-	}
-	homieClient.publish(name+"/$properties", propertyCsv)
-
+	homieClient.nodes[name].Publish()
 }
 
 func (homieClient *client) Restart() error {
@@ -262,10 +229,10 @@ func (homieClient *client) Restart() error {
 	if err == nil {
 		for _, node := range homieClient.Nodes() {
 			homieClient.logger.Info("restoring node ", node.Name())
-			homieClient.publishNode(node)
+			node.Publish()
 		}
 		for idx, callback := range homieClient.configCallbacks {
-			homieClient.logger.Info("restoring callback ", idx)
+			homieClient.logger.Info("restoring publish ", idx)
 			homieClient.subscribe("$implementation/config/set", func(path string, payload string) {
 				callback(payload)
 			})

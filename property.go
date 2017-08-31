@@ -10,7 +10,6 @@ type Property interface {
 	Format() string
 	Publish() error
 }
-type publishFunc func(property string, value string)
 type property struct {
 	name     string
 	value    string
