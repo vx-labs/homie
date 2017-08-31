@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -112,11 +113,15 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 	homieClient.publish("$fw/version", "0.0.1")
 	homieClient.publish("$implementation", "vx-go-homie")
 
+	nodes := make([]string, len(homieClient.Nodes()))
+	i := 0
 	for name, node := range homieClient.Nodes() {
+		nodes[i] = name
 		homieClient.logger.Debugf("publishing node %s", name)
 		node.Publish()
+		i += 1
 	}
-
+	homieClient.publish("nodes", strings.Join(nodes, ","))
 	// $online must be sent last
 	homieClient.publish("$online", "true")
 	go homieClient.ReadyCallback()
