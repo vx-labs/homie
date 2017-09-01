@@ -13,6 +13,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -148,6 +149,8 @@ func (homieClient *client) Start(ctx context.Context, cb func()) error {
 			}
 		} else {
 			homieClient.logger.Debug("connected to mqtt server")
+			homieClient.wg = sync.WaitGroup{}
+			homieClient.wg.Add(1)
 			go homieClient.loop(ctx)
 		}
 	}
@@ -160,6 +163,7 @@ func (homieClient *client) Start(ctx context.Context, cb func()) error {
 
 func (homieClient *client) loop(ctx context.Context) {
 	ctx, cancel := context.WithCancel(ctx)
+	defer homieClient.wg.Done()
 	homieClient.cancel = cancel
 	homieClient.logger.Info("mqtt subsystem started")
 	for {
@@ -197,6 +201,7 @@ func (homieClient *client) publishStats() {
 func (homieClient *client) Stop() error {
 	homieClient.logger.Info("stopping mqtt subsystem")
 	homieClient.cancel()
+	homieClient.wg.Wait()
 	return nil
 }
 

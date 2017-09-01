@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vx-labs/homie/config"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -47,6 +48,7 @@ type unsubscribeMessage struct {
 
 type client struct {
 	id              string
+	wg              sync.WaitGroup
 	logger          *logrus.Entry
 	cfgStore        config.Store
 	ip              string
