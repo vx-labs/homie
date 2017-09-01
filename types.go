@@ -1,6 +1,7 @@
 package homie
 
 import (
+	"context"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/sirupsen/logrus"
 	"github.com/vx-labs/homie/config"
@@ -12,8 +13,8 @@ type publishFunc func(property string, value string)
 type subscribeFunc func(topic string, callback func(topic, payload string))
 
 type Client interface {
-	Start(readyCallback func()) error
-	Restart() error
+	Start(ctx context.Context, readyCallback func()) error
+	Restart(ctx context.Context) error
 	Name() string
 	Id() string
 	Url() string
@@ -25,7 +26,7 @@ type Client interface {
 	AddConfigCallback(func(config string))
 	AddNode(name string, nodeType string)
 	Nodes() map[string]Node
-	Reconfigure(prefix string, host string, port int, mqttPrefix string, ssl bool, sslAuth *config.TLSFormat, deviceName string)
+	Reconfigure(ctx context.Context, prefix string, host string, port int, mqttPrefix string, ssl bool, sslAuth *config.TLSFormat, deviceName string)
 }
 type SettableProperty struct {
 	Name     string
@@ -51,8 +52,7 @@ type client struct {
 	ip              string
 	mac             string
 	firmwareName    string
-	stopChan        chan bool
-	stopStatusChan  chan bool
+	cancel          context.CancelFunc
 	publishChan     chan stateMessage
 	subscribeChan   chan subscribeMessage
 	unsubscribeChan chan unsubscribeMessage
@@ -105,7 +105,7 @@ func (homieClient *client) AddConfigCallback(callback func(config string)) {
 	homieClient.configCallbacks = append(homieClient.configCallbacks, callback)
 }
 
-func (homieClient *client) Reconfigure(prefix string, host string, port int, mqttPrefix string, ssl bool, sslConfig *config.TLSFormat, deviceName string) {
+func (homieClient *client) Reconfigure(ctx context.Context, prefix string, host string, port int, mqttPrefix string, ssl bool, sslConfig *config.TLSFormat, deviceName string) {
 	cfg := homieClient.cfgStore.Get()
 	cfg.Homie.Name = deviceName
 	cfg.Mqtt.Prefix = mqttPrefix
@@ -115,5 +115,5 @@ func (homieClient *client) Reconfigure(prefix string, host string, port int, mqt
 	cfg.Mqtt.Ssl = ssl
 	cfg.Mqtt.Ssl_Config = sslConfig
 	homieClient.logger.Info("configuration changed: restarting")
-	homieClient.Restart()
+	homieClient.Restart(ctx)
 }

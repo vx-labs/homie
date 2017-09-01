@@ -102,7 +102,6 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 	homieClient.ip = ip
 	homieClient.mac = mac
 	homieClient.id = id
-	go homieClient.loop()
 
 	homieClient.publish("$homie", "2.1.0")
 	homieClient.publish("$name", homieClient.Name())
@@ -127,7 +126,7 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 	go homieClient.ReadyCallback()
 }
 
-func (homieClient *client) Start(cb func()) error {
+func (homieClient *client) Start(ctx context.Context, cb func()) error {
 	homieClient.ReadyCallback = cb
 	tries := 0
 	homieClient.logger.Debug("creating mqtt client")
@@ -143,13 +142,13 @@ func (homieClient *client) Start(cb func()) error {
 			select {
 			case <-time.After(5 * time.Second):
 				tries += 1
-			case <-homieClient.stopChan:
+			case <-ctx.Done():
 				homieClient.logger.Error("could not connect to MQTT: we are being shutdown")
-				homieClient.stopStatusChan <- true
 				return errors.New("could not connect to MQTT: we are being shutdown")
 			}
 		} else {
 			homieClient.logger.Debug("connected to mqtt server")
+			go homieClient.loop(ctx)
 		}
 	}
 	if tries >= 10 {
@@ -157,15 +156,13 @@ func (homieClient *client) Start(cb func()) error {
 	} else {
 		return nil
 	}
-
 }
 
-func (homieClient *client) loop() {
-	run := true
-	homieClient.stopChan = make(chan bool, 1)
-	homieClient.stopStatusChan = make(chan bool, 1)
+func (homieClient *client) loop(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	homieClient.cancel = cancel
 	homieClient.logger.Info("mqtt subsystem started")
-	for run {
+	for {
 		select {
 		case msg := <-homieClient.publishChan:
 			topic := homieClient.getDevicePrefix() + msg.subtopic
@@ -182,17 +179,16 @@ func (homieClient *client) loop() {
 				msg.callback(mqttMessage.Topic(), string(mqttMessage.Payload()))
 			})
 			break
-		case <-homieClient.stopChan:
-			run = false
+		case <-ctx.Done():
+			homieClient.mqttClient.Publish(homieClient.getDevicePrefix()+"$online", 1, true, "false")
+			homieClient.mqttClient.Disconnect(1000)
+			return
 			break
 		case <-time.After(10 * time.Second):
 			homieClient.publishStats()
 			break
 		}
 	}
-	homieClient.mqttClient.Publish(homieClient.getDevicePrefix()+"$online", 1, true, "false")
-	homieClient.mqttClient.Disconnect(1000)
-	homieClient.stopStatusChan <- true
 }
 
 func (homieClient *client) publishStats() {
@@ -200,15 +196,8 @@ func (homieClient *client) publishStats() {
 }
 func (homieClient *client) Stop() error {
 	homieClient.logger.Info("stopping mqtt subsystem")
-	homieClient.stopChan <- true
-	for {
-		select {
-		case <-homieClient.stopStatusChan:
-			homieClient.logger.Info("mqtt subsystem stopped")
-			return nil
-			break
-		}
-	}
+	homieClient.cancel()
+	return nil
 }
 
 func (homieClient *client) AddNode(name string, nodeType string) {
@@ -223,10 +212,10 @@ func (homieClient *client) AddNode(name string, nodeType string) {
 		})
 }
 
-func (homieClient *client) Restart() error {
+func (homieClient *client) Restart(ctx context.Context) error {
 	homieClient.logger.Info("restarting mqtt subsystem")
 	homieClient.Stop()
-	err := homieClient.Start(homieClient.ReadyCallback)
+	err := homieClient.Start(ctx, homieClient.ReadyCallback)
 	if err == nil {
 		for _, node := range homieClient.Nodes() {
 			homieClient.logger.Info("restoring node ", node.Name())
