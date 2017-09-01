@@ -185,7 +185,7 @@ func (homieClient *client) loop(ctx context.Context) {
 			break
 		case <-ctx.Done():
 			homieClient.mqttClient.Publish(homieClient.getDevicePrefix()+"$online", 1, true, "false")
-			homieClient.mqttClient.Disconnect(1000)
+			homieClient.mqttClient.Disconnect(10000)
 			return
 			break
 		case <-time.After(10 * time.Second):
@@ -202,6 +202,7 @@ func (homieClient *client) Stop() error {
 	homieClient.logger.Info("stopping mqtt subsystem")
 	homieClient.cancel()
 	homieClient.wg.Wait()
+	homieClient.logger.Info("mqtt subsystem stopped")
 	return nil
 }
 
