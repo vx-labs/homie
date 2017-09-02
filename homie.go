@@ -129,20 +129,19 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 
 func (homieClient *client) Start(ctx context.Context, cb func()) error {
 	homieClient.ReadyCallback = cb
-	tries := 0
 	homieClient.logger.Debug("creating mqtt client")
 	homieClient.logger.Debug("using config %s", homieClient.cfgStore.Dump())
 	homieClient.mqttClient = mqtt.NewClient(homieClient.getMQTTOptions())
 	homieClient.bootTime = time.Now()
 	homieClient.logger.Debug("connecting to mqtt server ", homieClient.Url())
-	for !homieClient.mqttClient.IsConnected() && tries < 10 {
+	for !homieClient.mqttClient.IsConnected() {
 		if token := homieClient.mqttClient.Connect(); token.Wait() && token.Error() != nil {
 			fmt.Println(token.Error().Error())
 			homieClient.logger.Error(token.Error())
 			homieClient.logger.Warn("connection to mqtt server failed. will retry in 5 seconds")
 			select {
 			case <-time.After(5 * time.Second):
-				tries += 1
+				homieClient.logger.Debugf("retrying")
 			case <-ctx.Done():
 				homieClient.logger.Error("could not connect to MQTT: we are being shutdown")
 				return errors.New("could not connect to MQTT: we are being shutdown")
@@ -154,11 +153,7 @@ func (homieClient *client) Start(ctx context.Context, cb func()) error {
 			go homieClient.loop(ctx)
 		}
 	}
-	if tries >= 10 {
-		return errors.New("could not connect to MQTT at " + homieClient.Url())
-	} else {
-		return nil
-	}
+	return nil
 }
 
 func (homieClient *client) loop(ctx context.Context) {
