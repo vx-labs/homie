@@ -53,6 +53,9 @@ func (homieClient *client) getMQTTOptions() *mqtt.ClientOptions {
 	o.SetWill(homieClient.getDevicePrefix()+"$online", "false", 1, true)
 	o.SetKeepAlive(10 * time.Second)
 	o.SetOnConnectHandler(homieClient.onConnectHandler)
+	o.SetConnectionLostHandler(func(client mqtt.Client, err error) {
+		homieClient.logger.Errorf("connection to mqtt broker lost: %s", err.Error())
+	})
 	if homieClient.cfgStore.Get().Mqtt.Ssl_Config.Privkey != "" {
 		homieClient.logger.Debug("building TLS configuration")
 		cert, err := tls.LoadX509KeyPair(homieClient.cfgStore.Get().Mqtt.Ssl_Config.ClientCert, homieClient.cfgStore.Get().Mqtt.Ssl_Config.Privkey)
