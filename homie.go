@@ -127,6 +127,7 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 	homieClient.publish("$nodes", strings.Join(nodes, ","))
 	// $online must be sent last
 	homieClient.publish("$online", "true")
+	homieClient.logger.Infof("connection to mqtt broker established")
 	go homieClient.ReadyCallback()
 }
 
