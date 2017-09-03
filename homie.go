@@ -109,7 +109,7 @@ func (homieClient *client) refreshId() {
 }
 
 func (homieClient *client) onConnectHandler(client mqtt.Client) {
-
+	homieClient.logger.Infof("connecting to mqtt broker - prefix is %s", homieClient.getDevicePrefix())
 	homieClient.publish("$online", "false")
 	homieClient.publish("$homie", "2.1.0")
 	homieClient.publish("$name", homieClient.Name())
