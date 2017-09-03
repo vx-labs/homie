@@ -203,7 +203,9 @@ func (homieClient *client) loop(ctx context.Context) {
 }
 
 func (homieClient *client) publishStats() {
-	homieClient.publish("$stats/uptime", strconv.Itoa(int(time.Since(homieClient.bootTime).Seconds())))
+	if homieClient.mqttClient.IsConnected() {
+		homieClient.publish("$stats/uptime", strconv.Itoa(int(time.Since(homieClient.bootTime).Seconds())))
+	}
 }
 func (homieClient *client) Stop() error {
 	homieClient.logger.Info("stopping mqtt subsystem")
