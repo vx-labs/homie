@@ -68,13 +68,15 @@ func (node *node) Publish() {
 	propertiesList := make([]string, len(node.properties))
 	i := 0
 	for _, prop := range node.properties {
-		prop.Publish()
-		if prop.Settable() {
-			node.subscribe(node.name+"/"+prop.Name()+"/set", func(topic, payload string) {
-				prop.Callback(payload)
+		property := prop
+		property.Publish()
+		if property.Settable() {
+			node.subscribe(node.name+"/"+property.Name()+"/set", func(topic, payload string) {
+				node.logger.Debugf("routed %s to property %s", topic, property.Name())
+				property.Callback(payload)
 			})
 		}
-		propertiesList[i] = prop.Name()
+		propertiesList[i] = property.Name()
 		i += 1
 	}
 	node.publish(node.name+"/$type", node.Type())
