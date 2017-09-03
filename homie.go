@@ -106,7 +106,7 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 	homieClient.ip = ip
 	homieClient.mac = mac
 	homieClient.id = id
-
+	homieClient.publish("$online", "false")
 	homieClient.publish("$homie", "2.1.0")
 	homieClient.publish("$name", homieClient.Name())
 	homieClient.publish("$mac", homieClient.Mac())
