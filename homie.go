@@ -115,6 +115,7 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 	homieClient.publish("$name", homieClient.Name())
 	homieClient.publish("$mac", homieClient.Mac())
 	homieClient.publish("$stats/interval", "10")
+	homieClient.publish("$stats/uptime", "0")
 	homieClient.publish("$localip", homieClient.Ip())
 	homieClient.publish("$fw/Name", homieClient.FirmwareName())
 	homieClient.publish("$fw/version", "0.0.1")
