@@ -179,10 +179,12 @@ func (homieClient *client) loop(ctx context.Context) {
 			break
 		case msg := <-homieClient.unsubscribeChan:
 			topic := homieClient.getDevicePrefix() + msg.subtopic
+			homieClient.logger.Debugf("unsub: %s", topic)
 			homieClient.mqttClient.Unsubscribe(topic)
 			break
 		case msg := <-homieClient.subscribeChan:
 			topic := homieClient.getDevicePrefix() + msg.subtopic
+			homieClient.logger.Debugf("sub: %s", topic)
 			homieClient.mqttClient.Subscribe(topic, 1, func(mqttClient mqtt.Client, mqttMessage mqtt.Message) {
 				msg.callback(mqttMessage.Topic(), string(mqttMessage.Payload()))
 			})
