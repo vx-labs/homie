@@ -69,6 +69,11 @@ func (node *node) Publish() {
 	i := 0
 	for _, prop := range node.properties {
 		prop.Publish()
+		if prop.Settable() {
+			node.subscribe(node.name+"/"+prop.Name()+"/set", func(topic, payload string) {
+				prop.Callback(payload)
+			})
+		}
 		propertiesList[i] = prop.Name()
 		i += 1
 	}
@@ -81,8 +86,6 @@ func (node *node) AddSettable(name string, unit string, datatype string, format 
 	property := NewProperty(name, true, unit, datatype, format, func(name, value string) {
 		node.publish(node.Name()+"/"+name, value)
 	})
+	property.SetCallback(callback)
 	node.properties[property.Name()] = property
-	node.subscribe(node.name+"/"+name+"/set", func(topic, payload string) {
-		callback(node.properties[name], payload)
-	})
 }

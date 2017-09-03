@@ -9,15 +9,18 @@ type Property interface {
 	Datatype() string
 	Format() string
 	Publish() error
+	SetCallback(func(property Property, payload string))
+	Callback(payload string)
 }
 type property struct {
-	name     string
-	value    string
-	settable bool
-	unit     string
-	datatype string
-	format   string
-	publish  publishFunc
+	name        string
+	value       string
+	settable    bool
+	unit        string
+	datatype    string
+	format      string
+	publish     publishFunc
+	setCallback func(property Property, payload string)
 }
 
 func (p *property) Name() string {
@@ -41,6 +44,12 @@ func (p *property) Datatype() string {
 }
 func (p *property) Format() string {
 	return p.format
+}
+func (p *property) SetCallback(cb func(property Property, payload string)) {
+	p.setCallback = cb
+}
+func (p *property) Callback(payload string) {
+	p.setCallback(p, payload)
 }
 func (p *property) Publish() error {
 	p.publish(p.name, p.value)
