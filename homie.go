@@ -90,7 +90,7 @@ func (homieClient *client) subscribe(subtopic string, callback func(path string,
 	homieClient.subscribeChan <- subscribeMessage{subtopic: subtopic, callback: callback}
 }
 
-func (homieClient *client) onConnectHandler(client mqtt.Client) {
+func (homieClient *client) refreshId() {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		panic(err)
@@ -106,6 +106,10 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 	homieClient.ip = ip
 	homieClient.mac = mac
 	homieClient.id = id
+}
+
+func (homieClient *client) onConnectHandler(client mqtt.Client) {
+
 	homieClient.publish("$online", "false")
 	homieClient.publish("$homie", "2.1.0")
 	homieClient.publish("$name", homieClient.Name())
@@ -135,6 +139,7 @@ func (homieClient *client) Start(ctx context.Context, cb func()) error {
 	homieClient.ReadyCallback = cb
 	homieClient.logger.Debug("creating mqtt client")
 	homieClient.logger.Debug("using config %s", homieClient.cfgStore.Dump())
+	homieClient.refreshId()
 	homieClient.mqttClient = mqtt.NewClient(homieClient.getMQTTOptions())
 	homieClient.bootTime = time.Now()
 	homieClient.logger.Debug("connecting to mqtt server ", homieClient.Url())
