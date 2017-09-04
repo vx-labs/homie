@@ -214,6 +214,7 @@ func (homieClient *client) publishStats() {
 				homieClient.publish("$stats/cpuload", strconv.FormatFloat(percent[0], 'f', 1, 64))
 			}
 		}
+		homieClient.publish("$stats", "uptime,freeheap,cpuload")
 	}
 }
 func (homieClient *client) Stop() error {
