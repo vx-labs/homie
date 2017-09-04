@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/eclipse/paho.mqtt.golang"
+	"github.com/shirou/gopsutil/cpu"
 	"github.com/sirupsen/logrus"
 	"github.com/vx-labs/homie/config"
 	"io/ioutil"
@@ -14,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -204,7 +206,14 @@ func (homieClient *client) loop(ctx context.Context) {
 
 func (homieClient *client) publishStats() {
 	if homieClient.mqttClient.IsConnected() {
-		homieClient.publish("$stats/uptime", strconv.Itoa(int(time.Since(homieClient.bootTime).Seconds())))
+		infos := syscall.Sysinfo_t{}
+		if syscall.Sysinfo(&infos) == nil {
+			homieClient.publish("$stats/uptime", strconv.Itoa(int(infos.Uptime)))
+			homieClient.publish("$stats/freeheap", strconv.Itoa(int(infos.Freeram)))
+			if percent, err := cpu.Percent(0*time.Second, false); err == nil {
+				homieClient.publish("$stats/cpuload", strconv.FormatFloat(percent[0], 'f', 1, 64))
+			}
+		}
 	}
 }
 func (homieClient *client) Stop() error {
