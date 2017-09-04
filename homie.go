@@ -116,7 +116,7 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 	homieClient.publish("$homie", "2.1.0")
 	homieClient.publish("$name", homieClient.Name())
 	homieClient.publish("$mac", homieClient.Mac())
-	homieClient.publish("$stats/interval", "10")
+	homieClient.publish("$stats/interval", "30")
 	homieClient.publish("$stats/uptime", "0")
 	homieClient.publish("$localip", homieClient.Ip())
 	homieClient.publish("$fw/Name", homieClient.FirmwareName())
@@ -173,6 +173,7 @@ func (homieClient *client) loop(ctx context.Context) {
 	defer homieClient.wg.Done()
 	homieClient.cancel = cancel
 	homieClient.logger.Info("mqtt subsystem started")
+	go homieClient.statsPublisher(ctx)
 	for {
 		select {
 		case msg := <-homieClient.publishChan:
@@ -197,13 +198,22 @@ func (homieClient *client) loop(ctx context.Context) {
 			homieClient.mqttClient.Disconnect(10000)
 			return
 			break
-		case <-time.After(10 * time.Second):
-			homieClient.publishStats()
-			break
 		}
 	}
 }
 
+func (homieClient *client) statsPublisher(ctx context.Context) {
+	ticker := time.Tick(30 * time.Second)
+	for {
+		select {
+		case <-ticker:
+			homieClient.publishStats()
+			break
+		case <-ctx.Done():
+			return
+		}
+	}
+}
 func (homieClient *client) publishStats() {
 	if homieClient.mqttClient.IsConnected() {
 		infos := syscall.Sysinfo_t{}
