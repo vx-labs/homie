@@ -14,7 +14,6 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -81,15 +80,23 @@ func (homieClient *client) getMQTTOptions() *mqtt.ClientOptions {
 }
 
 func (homieClient *client) publish(subtopic string, payload string) {
-	homieClient.publishChan <- stateMessage{subtopic: subtopic, payload: payload}
+	topic := homieClient.getDevicePrefix() + subtopic
+	homieClient.logger.Debugf("%s <- %s", topic, payload)
+	homieClient.mqttClient.Publish(topic, 1, true, payload)
 }
 
 func (homieClient *client) unsubscribe(subtopic string) {
-	homieClient.unsubscribeChan <- unsubscribeMessage{subtopic: subtopic}
+	topic := homieClient.getDevicePrefix() + subtopic
+	homieClient.logger.Debugf("unsub: %s", topic)
+	homieClient.mqttClient.Unsubscribe(topic)
 }
 
 func (homieClient *client) subscribe(subtopic string, callback func(path string, payload string)) {
-	homieClient.subscribeChan <- subscribeMessage{subtopic: subtopic, callback: callback}
+	topic := homieClient.getDevicePrefix() + subtopic
+	homieClient.logger.Debugf("sub: %s", topic)
+	homieClient.mqttClient.Subscribe(topic, 1, func(mqttClient mqtt.Client, mqttMessage mqtt.Message) {
+		callback(mqttMessage.Topic(), string(mqttMessage.Payload()))
+	})
 }
 
 func (homieClient *client) refreshId() {
@@ -160,8 +167,7 @@ func (homieClient *client) Start(ctx context.Context, cb func()) error {
 			}
 		} else {
 			homieClient.logger.Debug("connected to mqtt server")
-			homieClient.wg = sync.WaitGroup{}
-			homieClient.wg.Add(1)
+
 			go homieClient.loop(ctx)
 		}
 	}
@@ -170,36 +176,9 @@ func (homieClient *client) Start(ctx context.Context, cb func()) error {
 
 func (homieClient *client) loop(ctx context.Context) {
 	ctx, cancel := context.WithCancel(ctx)
-	defer homieClient.wg.Done()
 	homieClient.cancel = cancel
 	homieClient.logger.Info("mqtt subsystem started")
 	go homieClient.statsPublisher(ctx)
-	for {
-		select {
-		case msg := <-homieClient.publishChan:
-			topic := homieClient.getDevicePrefix() + msg.subtopic
-			homieClient.logger.Debugf("%s <- %s", topic, msg.payload)
-			homieClient.mqttClient.Publish(topic, 1, true, msg.payload)
-			break
-		case msg := <-homieClient.unsubscribeChan:
-			topic := homieClient.getDevicePrefix() + msg.subtopic
-			homieClient.logger.Debugf("unsub: %s", topic)
-			homieClient.mqttClient.Unsubscribe(topic)
-			break
-		case msg := <-homieClient.subscribeChan:
-			topic := homieClient.getDevicePrefix() + msg.subtopic
-			homieClient.logger.Debugf("sub: %s", topic)
-			homieClient.mqttClient.Subscribe(topic, 1, func(mqttClient mqtt.Client, mqttMessage mqtt.Message) {
-				msg.callback(mqttMessage.Topic(), string(mqttMessage.Payload()))
-			})
-			break
-		case <-ctx.Done():
-			homieClient.mqttClient.Publish(homieClient.getDevicePrefix()+"$online", 1, true, "false")
-			homieClient.mqttClient.Disconnect(10000)
-			return
-			break
-		}
-	}
 }
 
 func (homieClient *client) statsPublisher(ctx context.Context) {
@@ -230,7 +209,8 @@ func (homieClient *client) publishStats() {
 func (homieClient *client) Stop() error {
 	homieClient.logger.Info("stopping mqtt subsystem")
 	homieClient.cancel()
-	homieClient.wg.Wait()
+	homieClient.mqttClient.Publish(homieClient.getDevicePrefix()+"$online", 1, true, "false")
+	homieClient.mqttClient.Disconnect(10000)
 	homieClient.logger.Info("mqtt subsystem stopped")
 	return nil
 }
