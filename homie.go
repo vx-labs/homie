@@ -44,6 +44,8 @@ func NewClient(ctx context.Context, prefix string, server string, port int, mqtt
 		publishChan:     make(chan stateMessage, 10),
 		subscribeChan:   make(chan subscribeMessage, 10),
 		unsubscribeChan: make(chan unsubscribeMessage, 10),
+		connected:       make(chan struct{}, 1),
+		disconnected:    make(chan struct{}, 1),
 	}
 
 }
@@ -56,6 +58,7 @@ func (homieClient *client) getMQTTOptions() *mqtt.ClientOptions {
 	o.SetOnConnectHandler(homieClient.onConnectHandler)
 	o.SetConnectionLostHandler(func(client mqtt.Client, err error) {
 		homieClient.logger.Errorf("connection to mqtt broker lost: %s", err.Error())
+		homieClient.Disconnected() <- struct{}{}
 	})
 	if homieClient.cfgStore.Get().Mqtt.Ssl_Config.Privkey != "" {
 		homieClient.logger.Debug("building TLS configuration")
@@ -77,6 +80,14 @@ func (homieClient *client) getMQTTOptions() *mqtt.ClientOptions {
 		}
 	}
 	return o
+}
+
+func (homieClient *client) Disconnected() chan struct{} {
+	return homieClient.disconnected
+}
+
+func (homieClient *client) Connected() chan struct{} {
+	return homieClient.connected
 }
 
 func (homieClient *client) publish(subtopic string, payload string) {
@@ -142,11 +153,10 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 	// $online must be sent last
 	homieClient.publish("$online", "true")
 	homieClient.logger.Infof("connection to mqtt broker established")
-	go homieClient.ReadyCallback()
+	homieClient.Connected() <- struct{}{}
 }
 
-func (homieClient *client) Start(ctx context.Context, cb func()) error {
-	homieClient.ReadyCallback = cb
+func (homieClient *client) Start(ctx context.Context) error {
 	homieClient.logger.Debug("creating mqtt client")
 	homieClient.logger.Debug("using config %s", homieClient.cfgStore.Dump())
 	homieClient.refreshId()
@@ -230,7 +240,7 @@ func (homieClient *client) AddNode(name string, nodeType string) {
 func (homieClient *client) Restart(ctx context.Context) error {
 	homieClient.logger.Info("restarting mqtt subsystem")
 	homieClient.Stop()
-	err := homieClient.Start(ctx, homieClient.ReadyCallback)
+	err := homieClient.Start(ctx)
 	if err == nil {
 		for _, node := range homieClient.Nodes() {
 			homieClient.logger.Info("restoring node ", node.Name())

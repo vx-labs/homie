@@ -14,7 +14,9 @@ type publishFunc func(property string, value string)
 type subscribeFunc func(topic string, callback func(topic, payload string))
 
 type Client interface {
-	Start(ctx context.Context, readyCallback func()) error
+	Start(ctx context.Context) error
+	Connected() chan struct{}
+	Disconnected() chan struct{}
 	Restart(ctx context.Context) error
 	Name() string
 	Id() string
@@ -62,7 +64,8 @@ type client struct {
 	mqttClient      mqtt.Client
 	nodes           map[string]Node
 	configCallbacks []func(config string)
-	ReadyCallback   func()
+	connected       chan struct{}
+	disconnected    chan struct{}
 }
 
 func (homieClient *client) Id() string {
