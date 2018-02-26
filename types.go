@@ -14,6 +14,9 @@ type publishFunc func(property string, value string)
 type subscribeFunc func(topic string, callback func(topic, payload string))
 
 type Client interface {
+	EnableTLS()
+	SetCustomTLSConfiguration(ssl_ca string, ssl_cert string, ssl_key string)
+	SetCredentials(user, password string)
 	Start(ctx context.Context) error
 	Connected() chan struct{}
 	Disconnected() chan struct{}
