@@ -18,16 +18,13 @@ import (
 	"time"
 )
 
-func NewClient(ctx context.Context, prefix string, server string, port int, mqttPrefix string, ssl bool, ssl_ca string, ssl_cert string, ssl_key string, deviceName string, firmwareName string, logger *logrus.Entry) Client {
+func NewClient(ctx context.Context, prefix string, server string, port int, mqttPrefix string, deviceName string, firmwareName string, logger *logrus.Entry) Client {
 	store := config.NewStore(ctx, "/tmp/", logger)
 	cfg := store.Get()
 	if !cfg.Initialized {
 		cfg.Mqtt.Host = server
 		cfg.Mqtt.Port = port
-		cfg.Mqtt.Ssl = ssl
-		cfg.Mqtt.Ssl_Config.CA = ssl_ca
-		cfg.Mqtt.Ssl_Config.ClientCert = ssl_cert
-		cfg.Mqtt.Ssl_Config.Privkey = ssl_key
+
 		cfg.Mqtt.Prefix = mqttPrefix
 
 		cfg.Homie.Prefix = prefix
@@ -49,8 +46,32 @@ func NewClient(ctx context.Context, prefix string, server string, port int, mqtt
 	}
 
 }
+
+func (homieClient *client) SetCustomTLSConfiguration(ssl_ca string, ssl_cert string, ssl_key string) {
+	cfg := homieClient.cfgStore.Get()
+	cfg.Mqtt.Ssl = true
+	cfg.Mqtt.Ssl_Config.CA = ssl_ca
+	cfg.Mqtt.Ssl_Config.ClientCert = ssl_cert
+	cfg.Mqtt.Ssl_Config.Privkey = ssl_key
+	homieClient.cfgStore.Save()
+
+}
+func (homieClient *client) EnableTLS() {
+	cfg := homieClient.cfgStore.Get()
+	cfg.Mqtt.Ssl = true
+	homieClient.cfgStore.Save()
+}
+func (homieClient *client) SetCredentials(user, password string) {
+	cfg := homieClient.cfgStore.Get()
+	cfg.Mqtt.Username = user
+	cfg.Mqtt.Password = password
+	homieClient.cfgStore.Save()
+}
+
 func (homieClient *client) getMQTTOptions() *mqtt.ClientOptions {
 	o := mqtt.NewClientOptions()
+	o.Username = homieClient.cfgStore.Get().Mqtt.Username
+	o.Password = homieClient.cfgStore.Get().Mqtt.Password
 	o.AddBroker(homieClient.Url())
 	o.SetClientID(homieClient.Id())
 	o.SetWill(homieClient.getDevicePrefix()+"$online", "false", 1, true)

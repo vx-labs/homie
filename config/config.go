@@ -65,6 +65,8 @@ type MQTTFormat struct {
 	Port       int        `json:"port,omitempty"`
 	Ssl        bool       `json:"ssl,omitempty"`
 	Ssl_Config *TLSFormat `json:"ssl_config,omitempty"`
+	Username   string     `json:"username,omitempty"`
+	Password   string     `json:"username,omitempty"`
 }
 type Format struct {
 	Mqtt        *MQTTFormat  `json:"mqtt,omitempty"`
