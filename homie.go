@@ -6,16 +6,17 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/eclipse/paho.mqtt.golang"
-	"github.com/shirou/gopsutil/cpu"
-	"github.com/sirupsen/logrus"
-	"github.com/vx-labs/homie/config"
 	"io/ioutil"
 	"net"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/eclipse/paho.mqtt.golang"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/sirupsen/logrus"
+	"github.com/vx-labs/homie/config"
 )
 
 func NewClient(ctx context.Context, prefix string, server string, port int, mqttPrefix string, deviceName string, firmwareName string, logger *logrus.Entry) Client {
@@ -30,7 +31,6 @@ func NewClient(ctx context.Context, prefix string, server string, port int, mqtt
 		cfg.Homie.Prefix = prefix
 		cfg.Homie.Name = deviceName
 		cfg.Initialized = true
-		store.Save()
 	}
 	return &client{
 		logger:          logger,
@@ -53,19 +53,16 @@ func (homieClient *client) SetCustomTLSConfiguration(ssl_ca string, ssl_cert str
 	cfg.Mqtt.Ssl_Config.CA = ssl_ca
 	cfg.Mqtt.Ssl_Config.ClientCert = ssl_cert
 	cfg.Mqtt.Ssl_Config.Privkey = ssl_key
-	homieClient.cfgStore.Save()
 
 }
 func (homieClient *client) EnableTLS() {
 	cfg := homieClient.cfgStore.Get()
 	cfg.Mqtt.Ssl = true
-	homieClient.cfgStore.Save()
 }
 func (homieClient *client) SetCredentials(user, password string) {
 	cfg := homieClient.cfgStore.Get()
 	cfg.Mqtt.Username = user
 	cfg.Mqtt.Password = password
-	homieClient.cfgStore.Save()
 }
 
 func (homieClient *client) getMQTTOptions() *mqtt.ClientOptions {
@@ -151,8 +148,9 @@ func (homieClient *client) refreshId() {
 
 func (homieClient *client) onConnectHandler(client mqtt.Client) {
 	homieClient.logger.Infof("connecting to mqtt broker - prefix is %s", homieClient.getDevicePrefix())
+	homieClient.publishDeviceState(InitState)
 	homieClient.publish("$online", "false")
-	homieClient.publish("$homie", "2.1.0")
+	homieClient.publish("$homie", "3.0.0")
 	homieClient.publish("$name", homieClient.Name())
 	homieClient.publish("$mac", homieClient.Mac())
 	homieClient.publish("$stats/interval", "30")
@@ -168,11 +166,12 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 		nodes[i] = name
 		homieClient.logger.Debugf("publishing node %s", name)
 		node.Publish()
-		i += 1
+		i++
 	}
 	homieClient.publish("$nodes", strings.Join(nodes, ","))
 	// $online must be sent last
 	homieClient.publish("$online", "true")
+	homieClient.publishDeviceState(ReadyState)
 	homieClient.logger.Infof("connection to mqtt broker established")
 	homieClient.Connected() <- struct{}{}
 }

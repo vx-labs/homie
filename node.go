@@ -1,8 +1,9 @@
 package homie
 
 import (
-	"github.com/sirupsen/logrus"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Node interface {
