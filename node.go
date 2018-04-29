@@ -52,7 +52,11 @@ func (node *node) Properties() []string {
 }
 
 func (node *node) Set(property string, value string) {
-	node.properties[property].Set(value)
+	prop, ok := node.properties[property]
+	if !ok {
+		return
+	}
+	prop.Set(value)
 }
 func (node *node) Type() string {
 	return node.nodeType
