@@ -109,18 +109,27 @@ func (homieClient *client) Connected() chan struct{} {
 }
 
 func (homieClient *client) publish(subtopic string, payload string) {
+	if homieClient.mqttClient == nil {
+		return
+	}
 	topic := homieClient.getDevicePrefix() + subtopic
 	homieClient.logger.Debugf("%s <- %s", topic, payload)
 	homieClient.mqttClient.Publish(topic, 1, true, payload)
 }
 
 func (homieClient *client) unsubscribe(subtopic string) {
+	if homieClient.mqttClient == nil {
+		return
+	}
 	topic := homieClient.getDevicePrefix() + subtopic
 	homieClient.logger.Debugf("unsub: %s", topic)
 	homieClient.mqttClient.Unsubscribe(topic)
 }
 
 func (homieClient *client) subscribe(subtopic string, callback func(path string, payload string)) {
+	if homieClient.mqttClient == nil {
+		return
+	}
 	topic := homieClient.getDevicePrefix() + subtopic
 	homieClient.logger.Debugf("sub: %s", topic)
 	homieClient.mqttClient.Subscribe(topic, 1, func(mqttClient mqtt.Client, mqttMessage mqtt.Message) {
