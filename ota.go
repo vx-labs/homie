@@ -63,7 +63,7 @@ func (homieClient *client) handleOTA(checksum string, firmware string) {
 		if count%(total/20) == 0 {
 			homieClient.publish("$implementation/ota/status", fmt.Sprintf("206 %d/%d", count, total))
 		}
-		_, err := reader.Read(buff)
+		nRead, err := reader.Read(buff)
 		if err == io.EOF {
 			break
 		}
@@ -72,7 +72,7 @@ func (homieClient *client) handleOTA(checksum string, firmware string) {
 			homieClient.logger.Errorf("aborting OTA : %v", err)
 			return
 		}
-		n, err := fd.Write(buff)
+		n, err := fd.Write(buff[:nRead])
 		if err != nil {
 			homieClient.publish("$implementation/ota/status", "500")
 			homieClient.logger.Errorf("aborting OTA : %v", err)
@@ -82,6 +82,12 @@ func (homieClient *client) handleOTA(checksum string, firmware string) {
 	}
 	homieClient.publish("$implementation/ota/status", fmt.Sprintf("206 %d/%d", total, total))
 	fd.Close()
+	receivedChecksum = homieClient.firmwareChecksum(self + "-ota")
+	if receivedChecksum != checksum {
+		homieClient.publish("$implementation/ota/status", "400 BAD_CHECKSUM")
+		homieClient.logger.Errorf("aborting OTA : checksum mismatch: received %q, wanted %q", receivedChecksum, checksum)
+		return
+	}
 	err = os.Rename(self+"-ota", self)
 	if err != nil {
 		homieClient.publish("$implementation/ota/status", "500")
