@@ -2,12 +2,13 @@ package homie
 
 import (
 	"context"
-	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/sirupsen/logrus"
-	"github.com/vx-labs/homie/config"
 	"strconv"
 	"sync"
 	"time"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/sirupsen/logrus"
+	"github.com/vx-labs/homie/config"
 )
 
 type publishFunc func(property string, value string)
@@ -69,6 +70,7 @@ type client struct {
 	configCallbacks []func(config string)
 	connected       chan struct{}
 	disconnected    chan struct{}
+	otaSessions     map[string]OTASession
 }
 
 func (homieClient *client) Id() string {

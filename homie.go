@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"syscall"
@@ -43,6 +44,7 @@ func NewClient(ctx context.Context, prefix string, server string, port int, mqtt
 		unsubscribeChan: make(chan unsubscribeMessage, 10),
 		connected:       make(chan struct{}, 1),
 		disconnected:    make(chan struct{}, 1),
+		otaSessions:     map[string]OTASession{},
 	}
 
 }
@@ -156,6 +158,12 @@ func (homieClient *client) refreshId() {
 }
 
 func (homieClient *client) onConnectHandler(client mqtt.Client) {
+	self, err := os.Executable()
+	if err != nil {
+		homieClient.logger.Error(err)
+		self = ""
+	}
+
 	homieClient.logger.Infof("connecting to mqtt broker - prefix is %s", homieClient.getDevicePrefix())
 	homieClient.publishDeviceState(InitState)
 	homieClient.publish("$online", "false")
@@ -167,9 +175,14 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 	homieClient.publish("$localip", homieClient.Ip())
 	homieClient.publish("$fw/name", homieClient.FirmwareName())
 	homieClient.publish("$fw/version", "0.0.1")
-	homieClient.publish("$fw/checksum", homieClient.firmwareChecksum())
+	homieClient.publish("$fw/checksum", homieClient.firmwareChecksum(self))
 	homieClient.publish("$implementation", "vx-go-homie")
-
+	homieClient.subscribe("$implementation/ota/firmware/+", func(topic string, payload string) {
+		checksum := strings.TrimPrefix(topic,
+			fmt.Sprintf("devices/%s/$implementation/ota/firmware/", homieClient.Id()))
+		homieClient.handleOTA(checksum, payload)
+	})
+	homieClient.publish("$implementation/ota/enabled", "true")
 	nodes := make([]string, len(homieClient.Nodes()))
 	i := 0
 	for name, node := range homieClient.Nodes() {
