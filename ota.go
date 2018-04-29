@@ -89,5 +89,6 @@ func (homieClient *client) handleOTA(checksum string, firmware string) {
 		return
 	}
 	homieClient.publish("$implementation/ota/status", fmt.Sprintf("200"))
-	homieClient.logger.Info(("OTA succeeded, restart is required"))
+	homieClient.logger.Info(("OTA succeeded"))
+	homieClient.restartHandler()
 }

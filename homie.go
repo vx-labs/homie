@@ -45,10 +45,16 @@ func NewClient(ctx context.Context, prefix string, server string, port int, mqtt
 		connected:       make(chan struct{}, 1),
 		disconnected:    make(chan struct{}, 1),
 		otaSessions:     map[string]OTASession{},
+		restartHandler: func() {
+			logger.Warn("manual restart is required")
+		},
 	}
 
 }
 
+func (homieClient *client) SetRestartHandler(f func()) {
+	homieClient.restartHandler = f
+}
 func (homieClient *client) SetCustomTLSConfiguration(ssl_ca string, ssl_cert string, ssl_key string) {
 	cfg := homieClient.cfgStore.Get()
 	cfg.Mqtt.Ssl = true

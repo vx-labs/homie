@@ -71,6 +71,7 @@ type client struct {
 	connected       chan struct{}
 	disconnected    chan struct{}
 	otaSessions     map[string]OTASession
+	restartHandler  func()
 }
 
 func (homieClient *client) Id() string {
