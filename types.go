@@ -34,6 +34,7 @@ type Client interface {
 	AddNode(name string, nodeType string)
 	Nodes() map[string]Node
 	Reconfigure(ctx context.Context, prefix string, host string, port int, mqttPrefix string, ssl bool, sslAuth *config.TLSFormat, deviceName string)
+	SetRestartHandler(func())
 }
 type SettableProperty struct {
 	Name     string
