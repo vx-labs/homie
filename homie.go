@@ -165,8 +165,9 @@ func (homieClient *client) onConnectHandler(client mqtt.Client) {
 	homieClient.publish("$stats/interval", "30")
 	homieClient.publish("$stats/uptime", "0")
 	homieClient.publish("$localip", homieClient.Ip())
-	homieClient.publish("$fw/Name", homieClient.FirmwareName())
+	homieClient.publish("$fw/name", homieClient.FirmwareName())
 	homieClient.publish("$fw/version", "0.0.1")
+	homieClient.publish("$fw/checksum", homieClient.firmwareChecksum())
 	homieClient.publish("$implementation", "vx-go-homie")
 
 	nodes := make([]string, len(homieClient.Nodes()))
